@@ -88,7 +88,10 @@ jobs:
 
   release:
     name: GitHub release
-    if: github.ref_type == 'tag'
+    # The catalog artifact is the title ZIP published with the release.
+    # This job only builds an FFPFSC image, which the catalog does not accept,
+    # so it must not attach that image to the release.
+    if: false
     needs: build
     runs-on: ubuntu-24.04
     permissions:
