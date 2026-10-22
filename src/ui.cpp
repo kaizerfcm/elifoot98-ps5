@@ -15,6 +15,8 @@
 #include <stdio.h>
 #include <string.h>
 
+extern "C" void bigalloc_stats(size_t *mapped, unsigned *count);
+
 namespace
 {
 static_assert(RETROK_F12 == RETROK_F1 + 11, "F-keys must be contiguous");
@@ -629,8 +631,12 @@ bool ui_init(std::string &error)
         app().framebuffer = SDL_GetWindowSurface(app().window);
         if (app().framebuffer)
         {
-            trace("framebuffer PS5 %dx%d formato 0x%x", app().framebuffer->w,
-                  app().framebuffer->h, app().framebuffer->format->format);
+            size_t mapped = 0;
+            unsigned blocks = 0;
+            bigalloc_stats(&mapped, &blocks);
+            trace("framebuffer PS5 %dx%d formato 0x%x, memoria direta %zu MB em %u blocos",
+                  app().framebuffer->w, app().framebuffer->h, app().framebuffer->format->format,
+                  mapped >> 20, blocks);
             app().renderer = SDL_CreateSoftwareRenderer(app().framebuffer);
         }
         else

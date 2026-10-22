@@ -202,8 +202,14 @@ for runtime_lib in libc++.a libc++abi.a libunwind.a libpthread.a; do
         link_inputs+=("$sdk_root/target/lib/$runtime_lib")
     fi
 done
+wraps=()
+if [[ -f $root/src/bigalloc.c ]]; then
+    for symbol in malloc calloc realloc free posix_memalign memalign aligned_alloc; do
+        wraps+=("--wrap=$symbol")
+    done
+fi
 "$sdk_root/bin/prospero-lld" -T "$native/ps5-pie.ld" --eh-frame-hdr \
-    --version-script "$native/app-symbols.map" \
+    --version-script "$native/app-symbols.map" "${wraps[@]}" \
     -L "$sdk_root/target/lib" \
     -e _start -o "$build/llvm-pie.elf" "${link_inputs[@]}" \
     --as-needed "$sdk_root"/target/lib/*.so \

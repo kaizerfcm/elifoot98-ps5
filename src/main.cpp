@@ -5,11 +5,42 @@
 #include "trace.h"
 #include "ui.h"
 
+#include <stdlib.h>
+
+extern "C"
+{
+    int sceKernelAvailableFlexibleMemorySize(size_t *size);
+    void *__real_malloc(size_t size);
+    void __real_free(void *address);
+}
+
+namespace
+{
+void trace_memory()
+{
+    size_t flexible = 0;
+    sceKernelAvailableFlexibleMemorySize(&flexible);
+    size_t heap = 0;
+    for (size_t step = 64u << 20; step >= (1u << 20); step /= 2)
+    {
+        void *probe = __real_malloc(heap + step);
+        if (probe)
+        {
+            __real_free(probe);
+            heap += step;
+        }
+    }
+    trace("memoria flexivel livre %zu MB, maior bloco do heap ~%zu MB", flexible >> 20,
+          heap >> 20);
+}
+} // namespace
+
 int main(int argc, char **argv)
 {
     (void)argc;
     (void)argv;
     trace("payload iniciado");
+    trace_memory();
     std::string error;
     if (!ui_init(error))
     {
