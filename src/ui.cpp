@@ -7,6 +7,7 @@
 #include "input.h"
 #include "patch.h"
 #include "saves.h"
+#include "trace.h"
 #include "util.h"
 
 #include <libretro.h>
@@ -550,10 +551,17 @@ bool locate_data(std::string &error)
         error = "O disco do jogo não está em /app0/assets/elifoot98.";
         return false;
     }
-    printf("elifoot98: disco em %s\n", seed);
-    fflush(stdout);
+    trace("disco em %s", seed);
     app().data_dir = seed;
     return true;
+}
+
+void show_progress(const std::string &text)
+{
+    trace("tela: %s", text.c_str());
+    app().boot_error = text;
+    app().screen = Screen::Boot;
+    ui_draw();
 }
 } // namespace
 
@@ -564,53 +572,77 @@ bool ui_init(std::string &error)
     // Video has to come up on its own. SDL_Init fails the whole call when any
     // flag fails, and the 01.000.005 log already had video out open before the
     // process quit. Audio and the pad driver are optional after that.
+    trace("SDL_Init video, driver de video: %s",
+          SDL_GetNumVideoDrivers() > 0 ? SDL_GetVideoDriver(0) : "nenhum");
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
     {
         error = SDL_GetError();
+        trace("SDL_Init video falhou: %s", error.c_str());
         return false;
     }
     if (SDL_InitSubSystem(SDL_INIT_AUDIO) != 0)
-        printf("elifoot98: audio indisponivel (%s)\n", SDL_GetError());
+        trace("audio indisponivel: %s", SDL_GetError());
     if (SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) != 0)
-        printf("elifoot98: controle indisponivel (%s)\n", SDL_GetError());
+        trace("controle indisponivel: %s", SDL_GetError());
+    trace("SDL_CreateWindow");
     app().window = SDL_CreateWindow("Elifoot 98", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                                     1920, 1080, SDL_WINDOW_FULLSCREEN_DESKTOP);
     if (!app().window)
+    {
+        trace("janela 1920x1080 falhou: %s", SDL_GetError());
         app().window = SDL_CreateWindow("Elifoot 98", SDL_WINDOWPOS_CENTERED,
                                         SDL_WINDOWPOS_CENTERED, 1280, 720, 0);
+    }
     if (!app().window)
     {
         error = SDL_GetError();
+        trace("janela falhou: %s", error.c_str());
         return false;
     }
+    trace("SDL_CreateRenderer");
     app().renderer =
         SDL_CreateRenderer(app().window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!app().renderer)
+    {
+        trace("renderer acelerado falhou: %s", SDL_GetError());
         app().renderer = SDL_CreateRenderer(app().window, -1, SDL_RENDERER_SOFTWARE);
+    }
     if (!app().renderer)
     {
         error = SDL_GetError();
+        trace("renderer falhou: %s", error.c_str());
         return false;
     }
+    SDL_RendererInfo info;
+    int out_w = 0, out_h = 0;
+    SDL_GetRendererOutputSize(app().renderer, &out_w, &out_h);
+    if (SDL_GetRendererInfo(app().renderer, &info) == 0)
+        trace("renderer %s, saida %dx%d", info.name, out_w, out_h);
     SDL_SetRenderDrawBlendMode(app().renderer, SDL_BLENDMODE_BLEND);
+    show_progress("Iniciando...");
     for (int i = 0; i < SDL_NumJoysticks(); i++)
         input_open_pad(i);
+    trace("controles: %d", SDL_NumJoysticks());
     std::string missing;
     if (!locate_data(missing))
     {
+        trace("%s", missing.c_str());
         app().boot_error = missing;
         app().screen = Screen::Boot;
         return true;
     }
     install_boot_bats(app().data_dir);
+    show_progress("Iniciando o DOSBox...");
     std::string boot_error;
     if (!core_boot(app().data_dir, boot_error))
     {
+        trace("core_boot falhou: %s", boot_error.c_str());
         app().core_ok = false;
         app().boot_error = boot_error + "\n" + core_log();
         app().screen = Screen::Boot;
         return true;
     }
+    trace("core_boot ok");
     app().core_ok = true;
     size_t bytes = 0;
     app().omatic.bind(core_ram(&bytes), bytes, path_join(app().data_dir, "cheats.txt"));
@@ -784,6 +816,14 @@ void ui_draw()
         core_draw(app().renderer, app().smooth);
     if (app().screen == Screen::Playing)
     {
+        unsigned long runs = 0, frames = 0;
+        core_frame_info(runs, frames);
+        if (frames == 0)
+        {
+            char line[96];
+            snprintf(line, sizeof(line), "Aguardando a imagem do DOSBox (%lu ciclos)", runs);
+            font_draw(app().renderer, 48, 48, line, kText, ui_scale());
+        }
         draw_status(ui_scale());
         SDL_RenderPresent(app().renderer);
         return;

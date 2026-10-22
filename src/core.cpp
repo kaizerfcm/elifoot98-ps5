@@ -2,6 +2,7 @@
 #include "core.h"
 
 #include "input.h"
+#include "trace.h"
 
 #include <libretro.h>
 
@@ -32,11 +33,12 @@ bool g_dirty = false;
 float g_aspect = 4.0f / 3.0f;
 uint8_t *g_ram = nullptr;
 size_t g_ram_size = 0;
+unsigned long g_runs = 0;
+unsigned long g_frames = 0;
 
 void log_line(const char *text)
 {
-    fprintf(stdout, "%s\n", text);
-    fflush(stdout);
+    trace("dosbox: %s", text);
     g_log += text;
     g_log += "\n";
     if (g_log.size() > 4000)
@@ -70,6 +72,9 @@ void RETRO_CALLCONV video_cb(const void *data, unsigned width, unsigned height, 
         return;
     if (width > 2048 || height > 2048)
         return;
+    if (g_frames == 0 || width != g_frame_w || height != g_frame_h)
+        trace("dosbox: quadro %ux%u", width, height);
+    g_frames++;
     g_frame_w = width;
     g_frame_h = height;
     g_frame.resize((size_t)width * height);
@@ -251,8 +256,10 @@ bool core_boot(const std::string &data_dir, std::string &error)
     retro_set_audio_sample_batch(audio_batch_cb);
     retro_set_input_poll(input_poll_cb);
     retro_set_input_state(input_state_cb);
+    trace("retro_init");
     retro_init();
     g_inited = true;
+    trace("retro_load_game %s/dosbox.conf", g_dir.c_str());
     if (!load_game(error))
         return false;
     g_ready = true;
@@ -289,7 +296,18 @@ void core_frame()
 {
     if (!g_ready)
         return;
+    if (g_runs == 0)
+        trace("primeiro retro_run");
     retro_run();
+    g_runs++;
+    if (g_runs == 1 || g_runs % 600 == 0)
+        trace("retro_run %lu, quadros %lu (%ux%u)", g_runs, g_frames, g_frame_w, g_frame_h);
+}
+
+void core_frame_info(unsigned long &runs, unsigned long &frames)
+{
+    runs = g_runs;
+    frames = g_frames;
 }
 
 bool core_reload(std::string &error)

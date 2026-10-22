@@ -2,23 +2,22 @@
 #include "app.h"
 #include "core.h"
 #include "input.h"
+#include "trace.h"
 #include "ui.h"
-
-#include <stdio.h>
 
 int main(int argc, char **argv)
 {
     (void)argc;
     (void)argv;
-    printf("elifoot98: payload iniciado\n");
-    fflush(stdout);
+    trace("payload iniciado");
     std::string error;
     if (!ui_init(error))
     {
-        printf("elifoot98: %s\n", error.c_str());
-        fflush(stdout);
+        trace("ui_init falhou: %s", error.c_str());
         return 1;
     }
+    trace("loop principal, tela %d", (int)app().screen);
+    unsigned long loops = 0;
     while (app().running)
     {
         SDL_Event event;
@@ -38,10 +37,11 @@ int main(int argc, char **argv)
         if (app().core_ok && (playing || typing))
             core_frame();
         ui_draw();
+        if (++loops == 1 || loops % 600 == 0)
+            trace("loop %lu, tela %d", loops, (int)app().screen);
     }
     core_shutdown();
     ui_shutdown();
-    printf("elifoot98: encerrado\n");
-    fflush(stdout);
+    trace("encerrado");
     return 0;
 }
