@@ -23,7 +23,7 @@ std::string export_dir()
 
 std::string saves_folder(const std::string &data_dir)
 {
-    return path_join(data_dir, "d/eli98/jogos");
+    return path_join(data_dir, "d/ELI98/JOGOS");
 }
 
 std::string export_saves(const std::string &data_dir)
@@ -83,7 +83,7 @@ std::string wipe_data(const std::string &data_dir)
     list_files(jogos, ".e98", false, files);
     for (const std::string &file : files)
         unlink(file.c_str());
-    remove_tree(path_join(data_dir, "d/eli98/PATCH"));
+    remove_tree(path_join(data_dir, "d/ELI98/PATCH"));
     const char *seed = "/app0/assets/elifoot98/hdd.img.base";
     std::string work = path_join(data_dir, "hdd.img");
     if (work == seed)

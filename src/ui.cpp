@@ -561,7 +561,7 @@ bool seed_ready()
     const char *seed = "/app0/assets/elifoot98";
     return path_is_file(path_join(seed, "dosbox.conf")) &&
            path_is_file(path_join(seed, "hdd.img")) &&
-           path_is_file(path_join(seed, "d/eli98/ELIFOOT.EXE"));
+           path_is_file(path_join(seed, "d/ELI98/ELIFOOT.EXE"));
 }
 
 bool locate_data(std::string &error)

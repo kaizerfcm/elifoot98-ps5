@@ -135,7 +135,7 @@ std::string prepare_patch(const std::string &zip_path, std::vector<PatchFile> &f
 
 std::string apply_patch(const std::string &data_dir, const std::vector<PatchFile> &files)
 {
-    std::string root = path_join(data_dir, "d/eli98/PATCH");
+    std::string root = path_join(data_dir, "d/ELI98/PATCH");
     if (!mkdir_p(root))
         return "Nao foi possivel criar a pasta PATCH.";
     for (const PatchFile &file : files)
@@ -150,7 +150,7 @@ std::string apply_patch(const std::string &data_dir, const std::vector<PatchFile
 
 std::string clear_patch(const std::string &data_dir)
 {
-    remove_tree(path_join(data_dir, "d/eli98/PATCH"));
+    remove_tree(path_join(data_dir, "d/ELI98/PATCH"));
     install_boot_bats(data_dir);
     return "Patch removido. Times e bandeiras voltam ao original no proximo boot.";
 }
