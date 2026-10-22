@@ -3,11 +3,11 @@
  * Copyright (C) 2026 BlackBearReloaded
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
- * Keeps replacement C++ allocation operators internal to the executable.
+ * The native converter rejects a defined dynamic symbol. Keep every symbol
+ * this executable defines local, including the C++ runtime it links in.
  */
 
 {
     local:
-        _Zn*;
-        _Zd*;
+        *;
 };

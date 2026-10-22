@@ -140,6 +140,9 @@ jobs:
           checksum_name="${CHECKSUM##*/}"
           if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             while IFS= read -r old_asset; do
+              if [[ $old_asset == *.zip ]]; then
+                continue
+              fi
               if [[ $old_asset != "$image_name" && $old_asset != "$checksum_name" ]]; then
                 gh release delete-asset "$GITHUB_REF_NAME" "$old_asset" --yes --repo "$GITHUB_REPOSITORY"
               fi

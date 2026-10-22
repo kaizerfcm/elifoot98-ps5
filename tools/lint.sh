@@ -18,11 +18,17 @@ checked=0
 for file in "${repository_files[@]}"; do
     [[ -f $file ]] || continue
     case "$file" in
+        third_party/*) ;;
         *.c|*.cc|*.cpp|*.h|*.hpp|*.ld|*.py|*.ps1|*.sh|*.yml|*.yaml|Makefile|.clang-format|.clang-tidy|.env.example)
             header=$(head -n 20 "$file")
-            grep -Fq ps5-native-app-boilerplate <<<"$header"
-            grep -Fq 'Copyright (C) 2026 BlackBearReloaded' <<<"$header"
-            grep -Fq 'SPDX-License-Identifier: GPL-3.0-or-later' <<<"$header"
+            if [[ $file == src/* ]]; then
+                grep -Eq 'SPDX-License-Identifier: GPL-(2\.0-or-later|3\.0-or-later)' <<<"$header"
+                grep -Fq 'Copyright (C)' <<<"$header"
+            else
+                grep -Fq ps5-native-app-boilerplate <<<"$header"
+                grep -Fq 'Copyright (C) 2026 BlackBearReloaded' <<<"$header"
+                grep -Fq 'SPDX-License-Identifier: GPL-3.0-or-later' <<<"$header"
+            fi
             ((checked += 1))
             ;;
         *.cs|*.csproj)
