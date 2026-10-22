@@ -623,6 +623,9 @@ bool ui_init(std::string &error)
         // Asking SDL_CreateRenderer for an accelerated renderer leaves no
         // usable fallback. Draw with SDL's software renderer directly into
         // the backend's window surface, then flip it in present().
+        int window_w = 0, window_h = 0;
+        SDL_GetWindowSize(app().window, &window_w, &window_h);
+        trace("janela %dx%d", window_w, window_h);
         app().framebuffer = SDL_GetWindowSurface(app().window);
         if (app().framebuffer)
         {
