@@ -10,8 +10,8 @@
   "conceptId": "99098",
   "contentBadgeType": 1,
   "contentId": "UP9000-PPSA99098_00-ELIFOOT980000000",
-  "contentVersion": "01.000.000",
-  "downloadDataSize": 536870912,
+  "contentVersion": "01.000.001",
+  "downloadDataSize": 256,
   "gameIntent": {
     "permittedIntents": [
       {

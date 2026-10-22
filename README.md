@@ -6,7 +6,7 @@ Elifoot 98 disk, booted by DOSBox Pure. The playable copy lives in `/download0/e
 because `/app0` is read-only. The first launch copies it from `/app0/assets/elifoot98`.
 Wipe restores `hdd.img` from that asset and deletes saves and `PATCH`.
 
-`downloadDataSize` is 536870912 bytes (512 MiB), which reserves `/download0`.
+`downloadDataSize` is 256, the shell value that reserves `/download0`. A byte-sized 512 MiB value is rejected before the title starts.
 Save import and export still look on the USB and `/data` mounts ShadowMountPlus
 provides. Options opens the menu. Create types text.
 
