@@ -838,7 +838,22 @@ Bytes write_executable(const Image &image, std::span<const Stub> stubs, const Op
             continue;
         copy_bytes(output, input.file_offset, input.data);
     }
-    const std::uint64_t relro_file = got.file_offset;
+    // The GOT is not always the first RELRO section. C++ images put
+    // .data.rel.ro ahead of it, and using the GOT's file offset makes the
+    // loader reject the segment (p_offset must match p_vaddr modulo 16 KiB).
+    const Section *relro_origin = nullptr;
+    for (const Section &input : image.sections)
+    {
+        if (!input.allocated() || !relro_section(input.name))
+            continue;
+        if (relro_origin == nullptr || input.address < relro_origin->address)
+            relro_origin = &input;
+    }
+    require(relro_origin != nullptr && relro_origin->address == relro_start,
+            "LLVM-linked image has no mapped RELRO origin");
+    const std::uint64_t relro_file = relro_origin->file_offset;
+    require(relro_file % kPage == relro_start % kPage,
+            "RELRO file offset is not page-congruent with its virtual address");
     copy_bytes(output, relro_file + process_address - relro_start, process_parameters);
     copy_bytes(output, relro_file + blocks_address - relro_start, blocks.data);
     copy_bytes(output, dynamic_file_at(string_address), dynamic_strings);
@@ -886,6 +901,13 @@ Bytes write_executable(const Image &image, std::span<const Stub> stubs, const Op
         {kProgramNote, 0, dynamic_file_at(note_address), note_address, note.size(), note.size(), 4},
         {kProgramNote, 0, tail_file, 0, tail_note.size(), 0, 4},
     }};
+    for (const ProgramHeader &header : headers)
+    {
+        if (header.type != kProgramLoad || header.alignment <= 1)
+            continue;
+        require(header.offset % header.alignment == header.address % header.alignment,
+                "load segment file offset is not page-congruent with its virtual address");
+    }
     for (std::size_t i = 0; i < headers.size(); ++i)
         write_program_header(output, i, headers[i]);
 
