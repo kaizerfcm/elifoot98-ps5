@@ -84,8 +84,10 @@ std::string wipe_data(const std::string &data_dir)
     for (const std::string &file : files)
         unlink(file.c_str());
     remove_tree(path_join(data_dir, "d/eli98/PATCH"));
-    const char *seed = "/app0/assets/elifoot98/hdd.img";
+    const char *seed = "/app0/assets/elifoot98/hdd.img.base";
     std::string work = path_join(data_dir, "hdd.img");
+    if (work == seed)
+        return "Dados apagados. O jogo sera reiniciado.";
     if (!path_is_file(seed) || !copy_file(seed, work))
         return "Nao foi possivel restaurar o disco do Windows.";
     return "Dados apagados. O jogo sera reiniciado.";

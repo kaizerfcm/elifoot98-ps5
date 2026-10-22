@@ -11,6 +11,9 @@ root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 dest="$root/assets/elifoot98"
 
 if [[ -f $dest/dosbox.conf && -f $dest/hdd.img && -f $dest/d/eli98/ELIFOOT.EXE ]]; then
+    if [[ ! -f $dest/hdd.img.base ]]; then
+        cp -a "$dest/hdd.img" "$dest/hdd.img.base"
+    fi
     printf 'Elifoot assets already staged.\n'
     exit 0
 fi
@@ -38,4 +41,5 @@ fi
 mkdir -p -- "$dest"
 cp -a "$source/." "$dest/"
 rm -f -- "$dest/hdd.img.orig"
+cp -a "$dest/hdd.img" "$dest/hdd.img.base"
 printf 'Staged Elifoot assets from %s\n' "$source"

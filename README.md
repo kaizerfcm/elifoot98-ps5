@@ -2,11 +2,10 @@
 
 Installed PS5 title `PPSA99098` for [ProsperoStore](https://prosperostore.net/).
 ShadowMountPlus shows the folder on the home screen. The game is the Windows 3.1
-Elifoot 98 disk, booted by DOSBox Pure. The playable copy lives in `/download0/elifoot98`
-because `/app0` is read-only. The first launch copies it from `/app0/assets/elifoot98`.
-Wipe restores `hdd.img` from that asset and deletes saves and `PATCH`.
-
-`downloadDataSize` is 256, the shell value that reserves `/download0`. A byte-sized 512 MiB value is rejected before the title starts.
+Elifoot 98 disk, booted by DOSBox Pure from `/app0/assets/elifoot98` inside the
+package. `downloadDataSize` is 0, so the shell does not reserve `/download0`.
+Wipe restores `hdd.img` from `hdd.img.base` in that same folder and deletes
+saves and `PATCH`.
 Save import and export still look on the USB and `/data` mounts ShadowMountPlus
 provides. Options opens the menu. Create types text.
 

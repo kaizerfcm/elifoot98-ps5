@@ -542,33 +542,17 @@ bool seed_ready()
            path_is_file(path_join(seed, "d/eli98/ELIFOOT.EXE"));
 }
 
-bool work_ready(const std::string &work)
-{
-    return path_is_file(path_join(work, "dosbox.conf")) &&
-           path_is_file(path_join(work, "hdd.img")) &&
-           path_is_file(path_join(work, "d/eli98/ELIFOOT.EXE"));
-}
-
 bool locate_data(std::string &error)
 {
     const char *seed = "/app0/assets/elifoot98";
-    const char *work = "/download0/elifoot98";
     if (!seed_ready())
     {
         error = "O disco do jogo não está em /app0/assets/elifoot98.";
         return false;
     }
-    if (!work_ready(work) && !copy_tree(seed, work))
-    {
-        error = "Não foi possível copiar o jogo para /download0.";
-        return false;
-    }
-    if (!work_ready(work))
-    {
-        error = "A cópia em /download0/elifoot98 ficou incompleta.";
-        return false;
-    }
-    app().data_dir = work;
+    printf("elifoot98: disco em %s\n", seed);
+    fflush(stdout);
+    app().data_dir = seed;
     return true;
 }
 } // namespace
