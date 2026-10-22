@@ -234,6 +234,21 @@ for asset in icon0.png pic0.dds pic1.dds snd0.at9; do
     [[ -f $root/sce_sys/$asset ]] && cp "$root/sce_sys/$asset" "$app/sce_sys/$asset"
 done
 [[ ! -d $root/assets ]] || cp -a "$root/assets" "$app/assets"
+rm -f -- "$app/assets/elifoot98/LEIA-ME.txt"
+if [[ -d $app/assets/elifoot98/d ]]; then
+    python3 - "$app/assets/elifoot98/d" <<'PY'
+import os
+import sys
+
+for directory, dirs, files in os.walk(sys.argv[1], topdown=False):
+    names = dirs + files
+    if len({name.upper() for name in names}) != len(names):
+        raise SystemExit(f"names differ only by case in {directory}")
+    for name in names:
+        if name != name.upper():
+            os.rename(os.path.join(directory, name), os.path.join(directory, name.upper()))
+PY
+fi
 
 [[ -f $root/runtime/libc.prx ]] || bash "$root/tools/rebuild-libc.sh"
 (cd "$root/runtime" && sha256sum --check --strict libc.prx.sha256)
