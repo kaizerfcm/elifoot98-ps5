@@ -22,6 +22,7 @@ for command in python3 sha256sum; do
     }
 done
 bash "$root/tools/setup-native-dependencies.sh" >/dev/null
+bash "$root/tools/stage-assets.sh"
 
 param="$root/sce_sys/param.json"
 title_id=$(python3 - "$param" <<'PY'
@@ -196,10 +197,17 @@ done
 if (( ${#pacbrew_libs[@]} > 0 )); then
     link_inputs+=(--start-group "${pacbrew_libs[@]}" --end-group)
 fi
+for runtime_lib in libc++.a libc++abi.a libunwind.a libpthread.a; do
+    if [[ -f $sdk_root/target/lib/$runtime_lib ]]; then
+        link_inputs+=("$sdk_root/target/lib/$runtime_lib")
+    fi
+done
 "$sdk_root/bin/prospero-lld" -T "$native/ps5-pie.ld" --eh-frame-hdr \
     --version-script "$native/app-symbols.map" \
+    -L "$sdk_root/target/lib" \
     -e _start -o "$build/llvm-pie.elf" "${link_inputs[@]}" \
-    --as-needed "$sdk_root"/target/lib/*.so
+    --as-needed "$sdk_root"/target/lib/*.so \
+    "$sdk_root/target/lib/libc.a"
 "$tool" link --in "$build/llvm-pie.elf" --out "$build/eboot.elf" \
     --stub-dir "$sdk_root/target/lib" --module-sdk "$module_sdk" \
     --companion-sdk "$companion_sdk" --file-name eboot.elf
@@ -270,6 +278,25 @@ if [[ $format == ffpfsc || $format == all ]]; then
         --version PS5 --verify "$app" "$dist/$title_id.ffpfsc"
 fi
 
-printf 'Build complete.\nApp folder: %s\n' "$app"
+python3 - "$app" "$dist/$title_id.zip" "$title_id" <<'PY'
+import os
+import sys
+import zipfile
+from pathlib import Path
+
+folder = Path(sys.argv[1])
+archive = Path(sys.argv[2])
+title = sys.argv[3]
+if archive.exists():
+    archive.unlink()
+with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as package:
+    for directory, _dirs, files in os.walk(folder):
+        for name in files:
+            path = Path(directory) / name
+            relative = path.relative_to(folder).as_posix()
+            package.write(path, f"{title}/{relative}")
+PY
+
+printf 'Build complete.\nApp folder: %s\nZIP:        %s\n' "$app" "$dist/$title_id.zip"
 [[ $format != ffpkg && $format != all ]] || printf 'FFPKG:     %s\n' "$dist/$title_id.ffpkg"
 [[ $format != ffpfsc && $format != all ]] || printf 'FFPFSC:    %s\n' "$dist/$title_id.ffpfsc"

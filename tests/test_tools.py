@@ -114,8 +114,8 @@ class ToolTests(unittest.TestCase):
             text=True,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("/data/homebrew/PPSA99999/", result.stdout)
-        self.assertIn("PPSA99999.{ffpkg,ffpfsc}", result.stdout)
+        self.assertIn("/data/homebrew/PPSA99098/", result.stdout)
+        self.assertIn("PPSA99098.{ffpkg,ffpfsc}", result.stdout)
         self.assertIn("no network request was sent", result.stdout)
 
     def test_deploy_dry_run_uses_mocked_build_and_no_network(self):

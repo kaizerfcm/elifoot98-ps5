@@ -8,10 +8,10 @@ SHELL := /bin/bash
 -include .env
 
 APP_DEFINITIONS ?=
-APP_INCLUDE_PATHS ?=
-APP_STATIC_ARCHIVES ?=
+APP_INCLUDE_PATHS ?= third_party/puff third_party/font8x8 .deps/dosbox-pure/libretro-common/include
+APP_STATIC_ARCHIVES ?= .deps/dosbox-pure/libdosbox_pure.a
 APP_RUNTIME_MODULES ?=
-PACBREW_PACKAGES ?=
+PACBREW_PACKAGES ?= sdl2
 PACBREW_INCLUDE_PATHS ?=
 PACBREW_STATIC_ARCHIVES ?=
 PS5_HOST ?=
@@ -63,7 +63,7 @@ test-unit: $(HOST_UNIT_TEST)
 	@printf '%s\n' '==> [test-unit] Running host-native GoogleTest application tests'
 	@$(HOST_UNIT_TEST) $(GTEST_ARGS)
 
-$(HOST_UNIT_TEST): tests/test_demo_renderer.cpp src/demo_renderer.cpp src/demo_renderer.hpp tools/setup-test-dependencies.sh | test-deps
+$(HOST_UNIT_TEST): tests/test_demo_renderer.cpp tests/demo_renderer.cpp tests/demo_renderer.hpp tools/setup-test-dependencies.sh | test-deps
 	@printf '%s\n' '==> [test-unit] Compiling the host-native GoogleTest binary'
 	@mkdir -p -- $(@D)
 	@gtest=$$(bash tools/setup-test-dependencies.sh); \
@@ -73,9 +73,9 @@ $(HOST_UNIT_TEST): tests/test_demo_renderer.cpp src/demo_renderer.cpp src/demo_r
 		$(HOST_CXX) -std=c++20 -O2 -pthread \
 			-isystem "$$gtest/googletest/include" -I"$$gtest/googletest" \
 			-c "$$gtest/googletest/src/gtest_main.cc" -o $(@D)/gtest-main.o; \
-		$(HOST_CXX) $(HOST_TEST_CXXFLAGS) -pthread -Isrc \
+		$(HOST_CXX) $(HOST_TEST_CXXFLAGS) -pthread -Itests \
 			-isystem "$$gtest/googletest/include" \
-			tests/test_demo_renderer.cpp src/demo_renderer.cpp \
+			tests/test_demo_renderer.cpp tests/demo_renderer.cpp \
 			$(@D)/gtest-all.o $(@D)/gtest-main.o \
 			$(HOST_TEST_LDFLAGS) -o $@
 
@@ -108,19 +108,23 @@ $(RUNTIME): $(RUNTIME_INPUTS)
 	@printf '%s\n' '==> [libc] Generating the missing or outdated runtime'
 	@bash tools/rebuild-libc.sh
 
-app: $(RUNTIME)
+.deps/dosbox-pure/libdosbox_pure.a: tools/build-dosbox.sh tools/setup-native-dependencies.sh
+	@printf '%s\n' '==> [dosbox] Building the pinned DOSBox Pure static library'
+	@bash tools/build-dosbox.sh
+
+app: $(RUNTIME) .deps/dosbox-pure/libdosbox_pure.a
 	@printf '%s\n' '==> [app] Compiling, linking, signing, and assembling the app folder'
 	@bash tools/build.sh Folder
 
-ffpkg: $(RUNTIME)
+ffpkg: $(RUNTIME) .deps/dosbox-pure/libdosbox_pure.a
 	@printf '%s\n' '==> [ffpkg] Building the app folder and UFS2 image'
 	@bash tools/build.sh Ffpkg
 
-ffpfsc: $(RUNTIME)
+ffpfsc: $(RUNTIME) .deps/dosbox-pure/libdosbox_pure.a
 	@printf '%s\n' '==> [ffpfsc] Building the app folder and compressed image'
 	@bash tools/build.sh Ffpfsc
 
-packages: $(RUNTIME)
+packages: $(RUNTIME) .deps/dosbox-pure/libdosbox_pure.a
 	@printf '%s\n' '==> [packages] Building the app folder and both package formats'
 	@bash tools/build.sh All
 

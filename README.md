@@ -1,6 +1,31 @@
+# Elifoot 98
+
+Installed PS5 title `PPSA99098` for [ProsperoStore](https://prosperostore.net/).
+ShadowMountPlus shows the folder on the home screen. The game is the Windows 3.1
+Elifoot 98 disk, booted by DOSBox Pure. The playable copy lives in `/download0/elifoot98`
+because `/app0` is read-only. The first launch copies it from `/app0/assets/elifoot98`.
+Wipe restores `hdd.img` from that asset and deletes saves and `PATCH`.
+
+`downloadDataSize` is 536870912 bytes (512 MiB), which reserves `/download0`.
+Save import and export still look on the USB and `/data` mounts ShadowMountPlus
+provides. Options opens the menu. Create types text.
+
+The frontend is GPL-2.0-or-later. DOSBox Pure is GPL-2.0-or-later. This
+repository's build system is GPL-3.0-or-later, so the combined title is
+distributed under GPL-3.0-or-later. See [LICENSE](LICENSE).
+
+```bash
+export ELIFOOT_DATA=/path/to/elifoot98-data   # optional; a sibling extract is detected
+make
+```
+
+`make` writes `dist/PPSA99098.zip`. The archive root is the `PPSA99098/` folder
+with `eboot.bin` and `sce_sys/`. The disk image is staged at build time and is
+not committed.
+
 # PS5 Native App Boilerplate
 
-[![Build](https://github.com/blackbearreloaded/ps5-native-app-boilerplate/actions/workflows/tooling.yml/badge.svg)](https://github.com/blackbearreloaded/ps5-native-app-boilerplate/actions/workflows/tooling.yml)
+[![Build](https://github.com/kaizerfcm/elifoot98-ps5/actions/workflows/tooling.yml/badge.svg)](https://github.com/kaizerfcm/elifoot98-ps5/actions/workflows/tooling.yml)
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)](LICENSE)
 
 Build modern C++20 homebrew applications for PlayStation 5 from Linux, WSL, or
