@@ -9,6 +9,7 @@
 bool core_boot(const std::string &data_dir, std::string &error);
 void core_shutdown();
 void core_frame();
+void core_frame_info(unsigned long &runs, unsigned long &frames);
 bool core_reload(std::string &error);
 bool core_ok();
 uint8_t *core_ram(size_t *size);
