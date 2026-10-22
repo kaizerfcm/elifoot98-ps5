@@ -119,6 +119,22 @@ void fill(SDL_Color color)
     SDL_RenderClear(app().renderer);
 }
 
+void present()
+{
+    // SDL_CreateSoftwareRenderer flushes drawing into this surface, but it
+    // has no window attached and therefore cannot flip the PS5 framebuffer.
+    SDL_RenderPresent(app().renderer);
+    if (app().framebuffer && SDL_UpdateWindowSurface(app().window) != 0)
+    {
+        static bool reported = false;
+        if (!reported)
+        {
+            trace("SDL_UpdateWindowSurface falhou: %s", SDL_GetError());
+            reported = true;
+        }
+    }
+}
+
 void shade()
 {
     int w = 0, h = 0;
@@ -599,13 +615,36 @@ bool ui_init(std::string &error)
         trace("janela falhou: %s", error.c_str());
         return false;
     }
-    trace("SDL_CreateRenderer");
-    app().renderer =
-        SDL_CreateRenderer(app().window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-    if (!app().renderer)
+    trace("criando renderer");
+    const char *video_driver = SDL_GetCurrentVideoDriver();
+    if (video_driver && strcmp(video_driver, "ps5") == 0)
     {
-        trace("renderer acelerado falhou: %s", SDL_GetError());
-        app().renderer = SDL_CreateRenderer(app().window, -1, SDL_RENDERER_SOFTWARE);
+        // The PS5 backend exposes a CPU framebuffer but no window renderer.
+        // Asking SDL_CreateRenderer for an accelerated renderer leaves no
+        // usable fallback. Draw with SDL's software renderer directly into
+        // the backend's window surface, then flip it in present().
+        app().framebuffer = SDL_GetWindowSurface(app().window);
+        if (app().framebuffer)
+        {
+            trace("framebuffer PS5 %dx%d formato 0x%x", app().framebuffer->w,
+                  app().framebuffer->h, app().framebuffer->format->format);
+            app().renderer = SDL_CreateSoftwareRenderer(app().framebuffer);
+        }
+        else
+        {
+            trace("SDL_GetWindowSurface falhou: %s", SDL_GetError());
+        }
+    }
+    else
+    {
+        app().renderer = SDL_CreateRenderer(app().window, -1,
+                                            SDL_RENDERER_ACCELERATED |
+                                                SDL_RENDERER_PRESENTVSYNC);
+        if (!app().renderer)
+        {
+            trace("renderer acelerado falhou: %s", SDL_GetError());
+            app().renderer = SDL_CreateRenderer(app().window, -1, SDL_RENDERER_SOFTWARE);
+        }
     }
     if (!app().renderer)
     {
@@ -659,6 +698,7 @@ void ui_shutdown()
         SDL_DestroyWindow(app().window);
     app().renderer = nullptr;
     app().window = nullptr;
+    app().framebuffer = nullptr;
     SDL_Quit();
 }
 
@@ -825,7 +865,7 @@ void ui_draw()
             font_draw(app().renderer, 48, 48, line, kText, ui_scale());
         }
         draw_status(ui_scale());
-        SDL_RenderPresent(app().renderer);
+        present();
         return;
     }
     if (app().screen != Screen::Boot)
@@ -835,7 +875,7 @@ void ui_draw()
     {
         font_draw(app().renderer, 48, 48, "Elifoot 98", kHi, scale + 1);
         font_draw_wrapped(app().renderer, 48, 120, 1200, app().boot_error, kText, scale, 0);
-        SDL_RenderPresent(app().renderer);
+        present();
         return;
     }
     if (app().screen == Screen::Menu)
@@ -916,5 +956,5 @@ void ui_draw()
         draw_items("Cheats salvos", items, "Cruz escolhe   Quadrado apaga");
     }
     draw_status(scale);
-    SDL_RenderPresent(app().renderer);
+    present();
 }

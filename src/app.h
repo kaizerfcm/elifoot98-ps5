@@ -49,6 +49,7 @@ struct App
 {
     SDL_Window *window = nullptr;
     SDL_Renderer *renderer = nullptr;
+    SDL_Surface *framebuffer = nullptr;
     bool running = true;
     bool smooth = true;
     bool core_ok = false;
