@@ -327,12 +327,7 @@ ParameterBlocks build_parameter_blocks()
         if (counts[i] != 0)
             write_u64(result.data, result.offsets[i] + 8, counts[i]);
     }
-    // The game sandbox does not honor an unlimited heap and leaves malloc with
-    // only a few megabytes. Video startup allocates two 1920x1080 framebuffers,
-    // so the second one failed with "Out of memory" while the console itself
-    // had plenty of RAM. 256 MB is the initial size; extended alloc still grows it.
-    constexpr std::uint64_t kLibcHeapSize = 256ull * 1024ull * 1024ull;
-    write_u64(result.data, result.heap_size, kLibcHeapSize);
+    write_u64(result.data, result.heap_size, std::numeric_limits<std::uint64_t>::max());
     write_u32(result.data, result.heap_extended, 1);
     return result;
 }
