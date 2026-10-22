@@ -12,8 +12,11 @@
 
 #include <libretro.h>
 
+#include <dirent.h>
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 
 extern "C" void bigalloc_stats(size_t *mapped, unsigned *count);
 
@@ -570,6 +573,29 @@ bool locate_data(std::string &error)
         return false;
     }
     trace("disco em %s", seed);
+    std::string drive_d = path_join(seed, "d");
+    DIR *listing = opendir(drive_d.c_str());
+    if (!listing)
+        trace("opendir da pasta D falhou: %s", strerror(errno));
+    else
+    {
+        int files = 0;
+        int dirs = 0;
+        bool saw_eli98 = false;
+        struct dirent *entry;
+        while ((entry = readdir(listing)) != NULL)
+        {
+            if (entry->d_type == DT_DIR)
+                dirs++;
+            else
+                files++;
+            if (strcasecmp(entry->d_name, "eli98") == 0)
+                saw_eli98 = true;
+        }
+        closedir(listing);
+        trace("pasta D: %d arquivos, %d diretorios, eli98 %s", files, dirs,
+              saw_eli98 ? "visto" : "ausente");
+    }
     app().data_dir = seed;
     return true;
 }

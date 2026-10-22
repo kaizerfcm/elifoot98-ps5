@@ -208,6 +208,11 @@ if [[ -f $root/src/bigalloc.c ]]; then
         wraps+=("--wrap=$symbol")
     done
 fi
+if [[ -f $root/src/ci_fs.c ]]; then
+    for symbol in stat access fopen opendir; do
+        wraps+=("--wrap=$symbol")
+    done
+fi
 "$sdk_root/bin/prospero-lld" -T "$native/ps5-pie.ld" --eh-frame-hdr \
     --version-script "$native/app-symbols.map" "${wraps[@]}" \
     -L "$sdk_root/target/lib" \
