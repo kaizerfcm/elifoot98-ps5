@@ -561,11 +561,18 @@ bool ui_init(std::string &error)
 {
     SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_PS5, "1");
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER) != 0)
+    // Video has to come up on its own. SDL_Init fails the whole call when any
+    // flag fails, and the 01.000.005 log already had video out open before the
+    // process quit. Audio and the pad driver are optional after that.
+    if (SDL_Init(SDL_INIT_VIDEO) != 0)
     {
         error = SDL_GetError();
         return false;
     }
+    if (SDL_InitSubSystem(SDL_INIT_AUDIO) != 0)
+        printf("elifoot98: audio indisponivel (%s)\n", SDL_GetError());
+    if (SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) != 0)
+        printf("elifoot98: controle indisponivel (%s)\n", SDL_GetError());
     app().window = SDL_CreateWindow("Elifoot 98", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                                     1920, 1080, SDL_WINDOW_FULLSCREEN_DESKTOP);
     if (!app().window)

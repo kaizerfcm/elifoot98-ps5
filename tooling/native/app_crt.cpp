@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * Initializes the platform runtime, runs static constructors and main, and
- * hands normal process termination back to the platform runtime.
+ * then waits. A big-app sandbox rejects the payload exit syscall with SIGSYS,
+ * which the shell shows as a crash dialog, so termination stays with the shell.
  */
 
 #include <cstddef>
@@ -16,8 +17,8 @@ using Initializer = void (*)();
 extern "C"
 {
     void _init_env(void *process_parameters);
-    int atexit(Destructor callback);
-    [[noreturn]] void exit(int status);
+    void __cxa_finalize(void *dso) __attribute__((weak));
+    int sceKernelUsleep(std::uint32_t microseconds);
     int application_main(int argc, char **argv, char **envp) __asm__("main");
 
     extern Initializer __preinit_array_start[] __attribute__((weak));
@@ -71,11 +72,14 @@ _start(void *process_parameters, Destructor loader_teardown)
     auto **argv = reinterpret_cast<char **>(parameters + sizeof(std::uint64_t));
 
     _init_env(process_parameters);
-    if (loader_teardown != nullptr)
-        (void)atexit(loader_teardown);
-    (void)atexit(_fini);
     _init();
     const int status = application_main(argc, argv, nullptr);
     catchReturnFromMain(status);
-    exit(status);
+    if (__cxa_finalize != nullptr)
+        __cxa_finalize(nullptr);
+    _fini();
+    if (loader_teardown != nullptr)
+        loader_teardown();
+    for (;;)
+        sceKernelUsleep(1000000);
 }
