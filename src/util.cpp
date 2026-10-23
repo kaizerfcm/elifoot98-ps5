@@ -235,6 +235,38 @@ static void list_dir(const std::string &dir, const char *ext, std::vector<std::s
     closedir(d);
 }
 
+int uppercase_tree(const std::string &root)
+{
+    DIR *dir = opendir(root.c_str());
+    if (!dir)
+        return -1;
+    std::vector<std::string> names;
+    while (struct dirent *ent = readdir(dir))
+    {
+        if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)
+            continue;
+        names.emplace_back(ent->d_name);
+    }
+    closedir(dir);
+    int renamed = 0;
+    for (const std::string &name : names)
+    {
+        std::string path = path_join(root, name);
+        if (path_is_dir(path))
+        {
+            int nested = uppercase_tree(path);
+            if (nested > 0)
+                renamed += nested;
+        }
+        std::string upper = upper_ascii(name);
+        if (upper == name)
+            continue;
+        if (rename(path.c_str(), path_join(root, upper).c_str()) == 0)
+            renamed++;
+    }
+    return renamed;
+}
+
 void list_files(const std::string &dir, const char *ext, bool one_level,
                 std::vector<std::string> &out)
 {

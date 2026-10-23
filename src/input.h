@@ -40,3 +40,5 @@ void input_pulse(unsigned retrok, bool shift);
 int16_t input_key_state(unsigned id);
 int16_t input_mouse_state(unsigned id);
 void input_on_poll();
+typedef void (*InputKeyEdge)(bool down, unsigned retrok);
+void input_set_key_edge(InputKeyEdge edge);

@@ -16,3 +16,4 @@ std::string prepare_patch(const std::string &zip_path, std::vector<PatchFile> &f
 std::string apply_patch(const std::string &data_dir, const std::vector<PatchFile> &files);
 std::string clear_patch(const std::string &data_dir);
 void install_boot_bats(const std::string &data_dir);
+bool install_launch_config(const std::string &data_dir);
