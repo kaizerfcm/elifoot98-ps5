@@ -673,8 +673,7 @@ bool ui_init(std::string &error)
     else
     {
         app().renderer = SDL_CreateRenderer(app().window, -1,
-                                            SDL_RENDERER_ACCELERATED |
-                                                SDL_RENDERER_PRESENTVSYNC);
+                                            SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
         if (!app().renderer)
         {
             trace("renderer acelerado falhou: %s", SDL_GetError());

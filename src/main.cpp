@@ -30,8 +30,7 @@ void trace_memory()
             heap += step;
         }
     }
-    trace("memoria flexivel livre %zu MB, maior bloco do heap ~%zu MB", flexible >> 20,
-          heap >> 20);
+    trace("memoria flexivel livre %zu MB, maior bloco do heap ~%zu MB", flexible >> 20, heap >> 20);
 }
 } // namespace
 
