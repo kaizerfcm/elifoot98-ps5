@@ -35,6 +35,13 @@ uint8_t *g_ram = nullptr;
 size_t g_ram_size = 0;
 unsigned long g_runs = 0;
 unsigned long g_frames = 0;
+retro_keyboard_callback g_keys = {};
+
+void forward_key(bool down, unsigned key)
+{
+    if (g_keys.callback)
+        g_keys.callback(down, key, 0, 0);
+}
 
 void log_line(const char *text)
 {
@@ -163,7 +170,24 @@ bool env_cb(unsigned cmd, void *data)
         }
         if (!strcmp(var->key, "dosbox_pure_cpu_type"))
         {
-            var->value = "pentium_slow";
+            // pentium_slow checks every memory access. That turns the Windows
+            // 3.1 menus into slow motion, which feels like input lag.
+            var->value = "auto";
+            return true;
+        }
+        if (!strcmp(var->key, "dosbox_pure_cpu_core"))
+        {
+            // The dynamic core needs an executable mapping. Keep the
+            // interpreter so a rejected mprotect cannot stall a frame.
+            var->value = "normal";
+            return true;
+        }
+        if (!strcmp(var->key, "dosbox_pure_cycles"))
+        {
+            // Fixed 486-class speed, the same cap the game's own conf uses.
+            // "auto" with no maximum grows until one frame fills the measured
+            // time, so a slow present turns into a long emulated slice.
+            var->value = "24000";
             return true;
         }
         if (!strcmp(var->key, "dosbox_pure_voodoo"))
@@ -179,6 +203,9 @@ bool env_cb(unsigned cmd, void *data)
         return false;
     }
     case RETRO_ENVIRONMENT_SET_KEYBOARD_CALLBACK:
+        if (!data)
+            return false;
+        g_keys = *(retro_keyboard_callback *)data;
         return true;
     case RETRO_ENVIRONMENT_GET_FASTFORWARDING:
         if (data)
@@ -242,6 +269,7 @@ bool load_game(std::string &error)
         g_aspect = (float)av.geometry.base_width / (float)av.geometry.base_height;
     open_audio(av.timing.sample_rate);
     refresh_ram();
+    input_set_key_edge(forward_key);
     return true;
 }
 } // namespace

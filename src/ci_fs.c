@@ -3,15 +3,16 @@
 /*
  * The game folder is a normal host directory, and the PS5 filesystem is
  * case-sensitive. DOS always looks names up in uppercase, so D:\ELI98 misses
- * the real directory eli98 and the boot batch stops before Windows. These
- * wrappers retry a failed lookup by matching each path component without
- * regard to case.
+ * the real directory eli98. DOSBox also keeps the "./" from "mount d ./d",
+ * which leaves a "." component in the host path. These wrappers collapse
+ * those components and retry a failed lookup without regard to case.
  */
 
 #include <dirent.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -20,11 +21,22 @@ int __real_access(const char *path, int mode);
 FILE *__real_fopen(const char *path, const char *mode);
 DIR *__real_opendir(const char *path);
 
+static int append_component(char *out, size_t outlen, const char *name)
+{
+    char trial[1024];
+    int wrote = snprintf(trial, sizeof(trial), "%s%s%s", out, out[1] ? "/" : "", name);
+    if (wrote < 0 || (size_t)wrote >= sizeof(trial) || (size_t)wrote >= outlen)
+        return -1;
+    memcpy(out, trial, (size_t)wrote + 1);
+    return 0;
+}
+
 static int resolve_case(const char *path, char *out, size_t outlen)
 {
     if (!path || path[0] != '/' || outlen < 2)
         return -1;
-    snprintf(out, outlen, "/");
+    out[0] = '/';
+    out[1] = 0;
     const char *src = path + 1;
     while (*src)
     {
@@ -41,41 +53,49 @@ static int resolve_case(const char *path, char *out, size_t outlen)
         char wanted[256];
         memcpy(wanted, src, length);
         wanted[length] = 0;
+        src = end;
+
+        if (strcmp(wanted, ".") == 0)
+            continue;
+        if (strcmp(wanted, "..") == 0)
+        {
+            char *slash = strrchr(out, '/');
+            if (!slash || slash == out)
+                out[1] = 0;
+            else
+                *slash = 0;
+            continue;
+        }
 
         char trial[1024];
         int wrote = snprintf(trial, sizeof(trial), "%s%s%s", out, out[1] ? "/" : "", wanted);
         struct stat st;
         if (wrote > 0 && (size_t)wrote < sizeof(trial) && __real_stat(trial, &st) == 0)
         {
-            snprintf(out, outlen, "%s", trial);
+            if (append_component(out, outlen, wanted) != 0)
+                return -1;
+            continue;
         }
-        else
+
+        DIR *dir = __real_opendir(out);
+        if (!dir)
+            return -1;
+        char found[256];
+        found[0] = 0;
+        struct dirent *entry;
+        while ((entry = readdir(dir)) != NULL)
         {
-            DIR *dir = __real_opendir(out);
-            if (!dir)
-                return -1;
-            char found[256];
-            found[0] = 0;
-            struct dirent *entry;
-            while ((entry = readdir(dir)) != NULL)
+            if (strcasecmp(entry->d_name, wanted) == 0)
             {
-                if (strcasecmp(entry->d_name, wanted) == 0)
-                {
-                    snprintf(found, sizeof(found), "%s", entry->d_name);
-                    break;
-                }
+                snprintf(found, sizeof(found), "%s", entry->d_name);
+                break;
             }
-            closedir(dir);
-            if (!found[0])
-                return -1;
-            wrote = snprintf(trial, sizeof(trial), "%s%s%s", out, out[1] ? "/" : "", found);
-            if (wrote < 0 || (size_t)wrote >= sizeof(trial))
-                return -1;
-            snprintf(out, outlen, "%s", trial);
         }
-        src = end;
+        closedir(dir);
+        if (!found[0] || append_component(out, outlen, found) != 0)
+            return -1;
     }
-    return out[1] ? 0 : -1;
+    return 0;
 }
 
 int __wrap_stat(const char *path, struct stat *st)
