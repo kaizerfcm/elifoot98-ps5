@@ -82,8 +82,8 @@ bool install_launch_config(const std::string &data_dir)
         if (size_flag != std::string::npos)
         {
             size_t end = text.find('\n', size_flag);
-            geometry = text.substr(size_flag, end == std::string::npos ? std::string::npos
-                                                                        : end - size_flag);
+            geometry = text.substr(size_flag,
+                                   end == std::string::npos ? std::string::npos : end - size_flag);
             while (!geometry.empty() && (geometry.back() == '\r' || geometry.back() == ' '))
                 geometry.pop_back();
         }
