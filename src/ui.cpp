@@ -705,7 +705,19 @@ bool ui_init(std::string &error)
         app().screen = Screen::Boot;
         return true;
     }
+    // DOS looks every name up in uppercase. The shipped tree is d/eli98, and a
+    // case-sensitive install (or one that folded the package back to lowercase)
+    // makes "cd ELI98" miss it. Rename on the console, where D: is writable,
+    // then mount that directory by its absolute path so "./d" cannot hide it.
+    std::string drive_d = path_join(app().data_dir, "d");
+    int renamed = uppercase_tree(drive_d);
+    if (renamed < 0)
+        trace("pasta D nao pode ser listada");
+    else
+        trace("pasta D normalizada, %d nomes em maiusculas", renamed);
     install_boot_bats(app().data_dir);
+    if (!install_launch_config(app().data_dir))
+        trace("autoexec do dosbox.conf nao foi reescrito");
     show_progress("Iniciando o DOSBox...");
     std::string boot_error;
     if (!core_boot(app().data_dir, boot_error))

@@ -29,6 +29,17 @@ struct Pulse
 };
 
 std::deque<Pulse> g_pulses;
+bool g_sent[512];
+InputKeyEdge g_edge = nullptr;
+
+void emit_edge(int key, bool down)
+{
+    if (key < 0 || key >= 512)
+        return;
+    if (g_edge)
+        g_edge(down, (unsigned)key);
+    g_sent[key] = down;
+}
 
 int clamp_mouse(int v)
 {
@@ -159,6 +170,7 @@ void input_clear()
 {
     memset(g_held, 0, sizeof(g_held));
     memset(g_pulsed, 0, sizeof(g_pulsed));
+    memset(g_sent, 0, sizeof(g_sent));
     g_pulses.clear();
     g_pulse_shift = false;
     g_mouse_x = 0;
@@ -178,6 +190,11 @@ void input_pulse(unsigned retrok, bool shift)
     g_pulses.push_back(pulse);
 }
 
+void input_set_key_edge(InputKeyEdge edge)
+{
+    g_edge = edge;
+}
+
 void input_on_poll()
 {
     memset(g_pulsed, 0, sizeof(g_pulsed));
@@ -190,6 +207,29 @@ void input_on_poll()
         g_pulse_shift = g_pulses.front().shift;
         g_pulses.front().releasing = true;
     }
+
+    // DOSBox Pure only hears physical keys through the keyboard callback. The
+    // pad state above is invisible to it until these edges are delivered, and
+    // Shift has to go down before the key it modifies.
+    bool now[512];
+    memset(now, 0, sizeof(now));
+    for (int i = 0; i < 512; i++)
+        now[i] = g_held[i] || g_pulsed[i];
+    if (g_pulse_shift)
+        now[RETROK_LSHIFT] = true;
+    if (now[RETROK_LSHIFT] && !g_sent[RETROK_LSHIFT])
+        emit_edge(RETROK_LSHIFT, true);
+    for (int i = 0; i < 512; i++)
+    {
+        if (i == RETROK_LSHIFT)
+            continue;
+        if (now[i] && !g_sent[i])
+            emit_edge(i, true);
+        else if (!now[i] && g_sent[i])
+            emit_edge(i, false);
+    }
+    if (!now[RETROK_LSHIFT] && g_sent[RETROK_LSHIFT])
+        emit_edge(RETROK_LSHIFT, false);
 }
 
 int16_t input_key_state(unsigned id)

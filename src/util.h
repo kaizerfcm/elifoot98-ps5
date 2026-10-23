@@ -21,3 +21,4 @@ std::string lower_ascii(std::string s);
 std::string upper_ascii(std::string s);
 void list_files(const std::string &dir, const char *ext, bool one_level,
                 std::vector<std::string> &out);
+int uppercase_tree(const std::string &root);

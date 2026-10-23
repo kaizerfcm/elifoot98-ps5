@@ -67,6 +67,41 @@ void install_boot_bats(const std::string &data_dir)
     write_text(path_join(data_dir, "d/PATCH.BAT"), kPatchBat);
 }
 
+bool install_launch_config(const std::string &data_dir)
+{
+    std::string conf_path = path_join(data_dir, "dosbox.conf");
+    std::vector<unsigned char> bytes;
+    if (!read_file(conf_path, bytes))
+        return false;
+    std::string text(bytes.begin(), bytes.end());
+    std::string geometry = "-size 512,32,2,800";
+    size_t img = text.find("imgmount");
+    if (img != std::string::npos)
+    {
+        size_t size_flag = text.find("-size", img);
+        if (size_flag != std::string::npos)
+        {
+            size_t end = text.find('\n', size_flag);
+            geometry = text.substr(size_flag, end == std::string::npos ? std::string::npos
+                                                                        : end - size_flag);
+            while (!geometry.empty() && (geometry.back() == '\r' || geometry.back() == ' '))
+                geometry.pop_back();
+        }
+    }
+    size_t pos = text.find("[autoexec]");
+    if (pos == std::string::npos)
+        pos = text.size();
+    text.resize(pos);
+    if (!text.empty() && text.back() != '\n')
+        text.push_back('\n');
+    text += "[autoexec]\n";
+    text += "mount d " + path_join(data_dir, "d") + "\n";
+    text += "imgmount c " + path_join(data_dir, "hdd.img") + " " + geometry + "\n";
+    text += "c:\n";
+    text += "autoexec.bat\n";
+    return write_text(conf_path, text);
+}
+
 std::vector<std::string> find_patch_zips()
 {
     std::vector<std::string> files;
